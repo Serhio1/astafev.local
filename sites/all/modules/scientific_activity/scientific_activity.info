@@ -1,0 +1,9 @@
+name = Scientific Activity
+description = Creates document for evaluation of scientific activity.
+package = Custom
+core = 7.x
+
+dependencies[] = ctools
+dependencies[] = pdf_using_mpdf
+
+files[] = scientific_activity.module

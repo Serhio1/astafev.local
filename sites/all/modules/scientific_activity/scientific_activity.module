@@ -1,0 +1,94 @@
+<?php
+
+/**
+ * Implements hook_theme().
+ */
+function scientific_activity_theme($existing, $type, $theme, $path) {
+  $theme = array();
+
+  $theme['node__scientific_activity_evaluation'] = array(
+    'render element' => 'content',
+    'base hook' => 'node',
+    'template' => 'node--scientific_activity_evaluation',
+    'path' => drupal_get_path('module', 'scientific_activity') . '/templates',
+   );
+   
+  return $theme;
+}
+
+/**
+ * Implements hook_form_FORM_ID_alter().
+ *
+ * Defines main form for scientific activity. 
+ */
+function scientific_activity_form_scientific_activity_evaluation_node_form_alter(&$form, &$form_state, $form_id) {
+  $fields = field_info_instances('node', 'scientific_activity_evaluation');
+  foreach ($fields as $fid => $fval) {
+    $form[$fid][LANGUAGE_NONE][0][$fid . '_points']['#access'] = FALSE;
+    $variants = $fid . '_variants';
+    $points = $fid . '_points';
+    
+    if (method_exists($form_state['field'][$fid][LANGUAGE_NONE]['entity'][0], $variants)) {
+      $current_variant = $form_state['field'][$fid][LANGUAGE_NONE]['entity'][0]->$variants;
+      $form_state['field'][$fid][LANGUAGE_NONE]['entity'][0]->$points = $current_variant;
+    }
+  }
+}
+
+function scientific_activity_node_presave($node) {
+  static $hook_running=false; if($hook_running) { return; } else { $hook_running=true; }
+
+  if($node->type == 'scientific_activity_evaluation') {
+    $fields = field_info_instances('node', 'scientific_activity_evaluation');
+    $node_wrapper = entity_metadata_wrapper('node', $node);
+    $field_collections = array();
+    foreach ($fields as $fid => $fval) {
+      $variants = $fid . '_variants';
+      $points = $fid . '_points';
+      if ($node_wrapper->$fid->__isset($points)) {
+        $multi = $node_wrapper->$fid->$points->optionsList();
+        if (!empty($multi)) {
+          $final_points_val = 0;
+          foreach ($multi as $mkey => $mval) {
+            $multifield = $fid . '_multi_' . $mkey;
+            $final_points = $fid . '_points_f';
+            if ($node_wrapper->$fid->__isset($multifield)) {
+              $final_points_val += $mval*intval($node_wrapper->$fid->$multifield->value());
+            }
+          }
+          if ($node_wrapper->$fid->__isset($final_points)) {
+            $node_wrapper->$fid->$final_points->set($final_points_val);
+          }
+        }
+      }
+      
+      if ($node_wrapper->$fid->__isset($variants)) {
+        $field_collections[$fid]['values'][] = $node_wrapper->$fid->$variants->value();
+      }
+      $field_collections[$fid]['keys'][] = $fid . '_points';
+      
+    }
+    
+    updateFieldCollection(
+      $node,
+      $field_collections
+    );
+  }
+
+  $hook_running = false;
+}
+
+
+function updateFieldCollection($node, $collections, $index = 0) {
+  if ($node && !empty($collections)) {
+    $node_wrapper = entity_metadata_wrapper('node', $node);
+    foreach ($collections as $collection_key => $collection) {
+      foreach ($collection['keys'] as $fkey_id => $fkey_val) {
+        if (isset($collection['values'])) {
+          $node_wrapper->$collection_key->$fkey_val->set($collection['values'][$fkey_id]);
+        }
+      }
+    }
+    $node_wrapper->save(true);
+  }
+}
