@@ -25,6 +25,8 @@ function scientific_activity_form_scientific_activity_evaluation_node_form_alter
   $fields = field_info_instances('node', 'scientific_activity_evaluation');
   foreach ($fields as $fid => $fval) {
     $form[$fid][LANGUAGE_NONE][0][$fid . '_points']['#access'] = FALSE;
+    $form[$fid][LANGUAGE_NONE][0][$fid . '_points_f']['#access'] = FALSE;
+    $form[$fid][LANGUAGE_NONE][0][$fid . '_hint']['#access'] = FALSE;
     $variants = $fid . '_variants';
     $points = $fid . '_points';
     
@@ -63,9 +65,25 @@ function scientific_activity_node_presave($node) {
       }
       
       if ($node_wrapper->$fid->__isset($variants)) {
-        $field_collections[$fid]['values'][] = $node_wrapper->$fid->$variants->value();
+        if (!empty($node_wrapper->__isset($fid))) {
+          if (isset($field_collections[$fid]) && isset($field_collections[$fid]['values'])) {
+            $field_collections[$fid]['values'][] = $node_wrapper->$fid->$variants->value();
+          }
+        }
       }
-      $field_collections[$fid]['keys'][] = $fid . '_points';
+      
+      if ($node_wrapper->$fid->__isset($points . '1')) {
+        if ($node_wrapper->$fid->__isset($variants . '1')) {
+          $variants1 = $variants . '1';
+          $variants2 = $variants . '2';
+          $field_collections[$fid]['values'][] = $node_wrapper->$fid->$variants1->value();
+          $field_collections[$fid]['keys'][] = $fid . '_points1';
+          $field_collections[$fid]['values'][] = $node_wrapper->$fid->$variants2->value();
+          $field_collections[$fid]['keys'][] = $fid . '_points2';
+        }
+      } else {
+        $field_collections[$fid]['keys'][] = $fid . '_points';
+      }
       
     }
     
