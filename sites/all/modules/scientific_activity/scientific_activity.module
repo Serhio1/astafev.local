@@ -65,7 +65,7 @@ function scientific_activity_node_presave($node) {
       }
       
       if ($node_wrapper->$fid->__isset($variants)) {
-        if (!empty($node_wrapper->__isset($fid))) {
+        if ($node_wrapper->__isset($fid)) {
           if (isset($field_collections[$fid]) && isset($field_collections[$fid]['values'])) {
             $field_collections[$fid]['values'][] = $node_wrapper->$fid->$variants->value();
           }
