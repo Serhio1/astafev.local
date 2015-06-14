@@ -80,6 +80,21 @@
  * @ingroup themeable
  */
 ?>
+<style>
+    .dodatok {
+        
+    }
+    .document-title {
+        text-align: center;
+        font-style: italic; 
+    }
+    .pib {
+        text-align: center;
+        text-decoration: underline;
+        
+    }
+</style>
+
 <div id="node-<?php print $node->nid; ?>" class="<?php print $classes; ?> clearfix"<?php print $attributes; ?>>
 
  
