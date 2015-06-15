@@ -44,7 +44,11 @@ function scientific_activity_node_presave($node) {
     $fields = field_info_instances('node', 'scientific_activity_evaluation');
     $node_wrapper = entity_metadata_wrapper('node', $node);
     $field_collections = array();
+    $sc_eval_final_points = 0;
     foreach ($fields as $fid => $fval) {
+      if ($fid == 'field_sc_eval_f') {
+          continue;
+      }
       $variants = $fid . '_variants';
       $points = $fid . '_points';
       if ($node_wrapper->$fid->__isset($points)) {
@@ -60,6 +64,7 @@ function scientific_activity_node_presave($node) {
           }
           if ($node_wrapper->$fid->__isset($final_points)) {
             $node_wrapper->$fid->$final_points->set($final_points_val);
+            $sc_eval_final_points += $final_points_val;
           }
         }
       }
@@ -68,6 +73,7 @@ function scientific_activity_node_presave($node) {
         if ($node_wrapper->__isset($fid)) {
           if (isset($field_collections[$fid]) && isset($field_collections[$fid]['values'])) {
             $field_collections[$fid]['values'][] = $node_wrapper->$fid->$variants->value();
+            $final_points_val += $node_wrapper->$fid->$variants->value();
           }
         }
       }
@@ -86,6 +92,7 @@ function scientific_activity_node_presave($node) {
       }
       
     }
+    $node_wrapper->field_sc_eval_f->set($sc_eval_final_points);
     
     updateFieldCollection(
       $node,

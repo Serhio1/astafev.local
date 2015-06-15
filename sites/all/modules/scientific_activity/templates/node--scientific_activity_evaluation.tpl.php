@@ -81,32 +81,117 @@
  */
 ?>
 <style>
+    .node {
+        font-family: TimesNewRoman,Times New;
+    }
+    .upfirst {
+        text-transform: capitalize;
+    }
+    .italic {
+        font-style: italic;
+    }
+    .underline {
+        text-decoration: underline;
+    }
     .dodatok {
-        
+        letter-spacing: 0.2em;
     }
     .document-title {
         text-align: center;
         font-style: italic; 
+        font-size: 14px;
+        letter-spacing: 0.15em;
+        font-weight: bold;
     }
     .pib {
         text-align: center;
         text-decoration: underline;
-        
+        font-weight: bold;
+        font-size: 14px;
+        font-style: italic; 
+    }
+    .hint {
+        text-align: center;
+        padding: 0;
+        margin-top: -5px;
+        font-size: 9px;
+        font-style: italic;
+        font-weight: bold;
+    }
+    .cathedra {
+        text-align: center;
+        font-weight: bold;
+        font-size: 14px;
+    }
+    
+    .status {
+        font-style: italic;
+        font-size: 12px;
+    }
+    .nni {
+        font-size: 10px;
+        text-decoration: underline;
+        font-style: italic;
+        font-weight: bold;
+        text-align: center;
+    }
+    .period {
+        font-size: 10px;
+        font-style: italic;
+        font-weight: bold;
+        text-align: center;
+        margin: 8px 0 8px 0;
+    }
+    .scientific-eval-table tbody .head td {
+        font-weight: bold;
+        text-align: center;
+    }
+    .scientific-eval-table td {
+        padding-left:8px;
+    }
+    .scientific-eval-table .points,
+    .scientific-eval-table .points-f {
+        text-align: center;
+        padding-left:0;
+    }
+    .scientific-eval-table .points-final-val,
+    .scientific-eval-table .points-final {
+        text-transform: uppercase;
+        font-weight: bold;
+        font-size: 14px;
+    }
+    .scientific-eval-table .points-final-val {
+        text-decoration: underline;
+        text-align: center;
+    }
+    .sign {
+        font-weight: bold;
+        font-size: 14px;
+        margin: 10px,50px,10px,0;
+    }
+    .sign .sign-underline {
+        display: block;
+        width: 200px;
+        height: 3px;
+        border-bottom: 1px solid #000;
+        float: right;
+        //text-decoration: underline;
+        margin-right: 500px;
     }
 </style>
 
-<div id="node-<?php print $node->nid; ?>" class="<?php print $classes; ?> clearfix"<?php print $attributes; ?>>
+<div id="node-<?php print $node->nid; ?>" class="<?php print $classes; ?> clearfix node"<?php print $attributes; ?>>
 
  
     
 
 
 
-</div>
+
 
 
 <?php $user = user_load($user->uid); ?>
-
+<?php $wrapper = entity_metadata_wrapper('node', $node); ?>
 
 <div class="dodatok">Додаток А</div>
 
@@ -116,13 +201,16 @@
 
     <div class="hint">(Прізвище, ім’я, по батькові)</div>
 
-    <div>
+    <div class="cathedra">
       <?php
-        if (!empty($user->field_academic_status[LANGUAGE_NONE][0])) {
-          print render($user->field_academic_status[LANGUAGE_NONE][0]['value']);
+        if ($wrapper->field_academic_status->__isset('field_academic_status_variants')) {
+          print '<span class="status"><span class="upfirst">' . $wrapper->field_academic_status
+                  ->field_academic_status_variants
+                  ->optionsList()[$wrapper->field_academic_status
+                  ->field_academic_status_variants->value()] . '</span>';
         }
       ?>
-      кафедри
+      кафедри</span>
       <?php
         if (!empty($user->field_cathedra[LANGUAGE_NONE][0])) {
           if (!empty($user->field_cathedra[LANGUAGE_NONE][0]['value'])) {
@@ -131,14 +219,14 @@
         }
         if (!empty($user->field_wage_rate[LANGUAGE_NONE][0])) {
           if (!empty($user->field_wage_rate[LANGUAGE_NONE][0]['value'])) {
-            print render($user->field_wage_rate[LANGUAGE_NONE][0]['value']);
+            print ' <span class="status">(' . render($user->field_wage_rate[LANGUAGE_NONE][0]['value']) . ' ставки)</span>';
           }
         }
       ?>
       
     </div>
 
-    <div>
+    <div class="nni">
       <?php
         if (!empty($user->field_nni_name[LANGUAGE_NONE][0])) {
           if (!empty($user->field_nni_name[LANGUAGE_NONE][0]['value'])) {
@@ -150,7 +238,7 @@
 
     <div class="hint">назва ННІ (факультету)</div>
 
-    <div>за період 01.06.2013 – 31.05.2014 р.р.</div>
+    <div class="period">за період 01.06.2014 – <?php echo date('d.m.Y'); ?> р.р.</div>
 
 
 <div id="node-<?php print $node->nid; ?>" class="pdf <?php print $classes; ?> clearfix"<?php print $attributes; ?>>
@@ -158,11 +246,11 @@
 
   <div class="content"<?php print $content_attributes; ?>>
       
-    <?php $wrapper = entity_metadata_wrapper('node', $node); ?>
+    
       
-      <table border="1" cellpadding="0" cellspacing="0" style="border-collapse:collapse;">
+      <table class="scientific-eval-table" border="1" cellpadding="0" cellspacing="0" style="border-collapse:collapse;">
       <tbody>
-        <tr>
+        <tr class="head">
           <td>№ п/п</td>
           <td>Предмет оцінювання</td>
           <td>Вартісні бали</td>
@@ -172,11 +260,16 @@
         </tr>
         <?php $i = 0; ?>
         <?php foreach ($fields as $fid => $fval): ?>
+        <?php 
+            if ($fid == 'field_sc_eval_f') {
+                continue;
+            }
+        ?>
         <tr>
           <td>
             <?php print ++$i . '.'; ?>
           </td>
-          <td>
+          <td class="variants">
             <?php
 
 $bundle_name = 'field_diss_b'; // Field name the collection is attached to
@@ -187,7 +280,7 @@ if (isset($info)) {
   $label = $info['label'];
 }
 
-              print '<p>' . $wrapper->$fid->label() . '</p>';
+              echo '<p>' , $wrapper->$fid->label() , '</p>';
               $points = $fid . '_points';
               if ($wrapper->$fid->__isset($points)) {
                 $multi = $wrapper->$fid->$points->optionsList();
@@ -198,7 +291,7 @@ if (isset($info)) {
                     $final_points = $fid . '_points_f';
                     if ($wrapper->$fid->__isset($multifield)) {
                       $info = field_info_instance('field_collection_item', $multifield, $fid);
-                      print '<p> - ' . $info['label'] . '</p>';
+                      echo '<p> - ' , $info['label'] , '</p>';
                     }
                   }
                   
@@ -208,12 +301,12 @@ if (isset($info)) {
               if ($wrapper->$fid->__isset($variants)) {
                 $options = $wrapper->$fid->$variants->optionsList();
                 foreach ($options as $op_id => $op_val) {
-                  print '<p> - ' . $op_val . '</p>';
+                  echo '<p> - ' , $op_val , '</p>';
                 }
               }
             ?>
           </td>
-          <td>
+          <td class="points">
             <?php
               $points = $fid . '_points';
               if ($wrapper->$fid->__isset($points)) {
@@ -221,13 +314,13 @@ if (isset($info)) {
                 if (!empty($options)) {
                   print '<p>&nbsp;</p>';
                   foreach ($options as $op_id => $op_val) {
-                    print '<p>' . $op_val . '</p>';
+                    echo '<p>' , $op_val , '</p>';
                   }
                 }
               }
             ?>
           </td>
-          <td>
+          <td class="hints">
             <?php
               $hint = $fid . '_hint';
               if ($wrapper->$fid->__isset($hint)) {
@@ -237,7 +330,7 @@ if (isset($info)) {
               }
             ?>
           </td>
-          <td>
+          <td class="points-f">
             <?php
               if ($wrapper->$fid->__isset($final_points)) {
                 print '<p>' . $wrapper->$fid->$final_points->value() . '</p>';
@@ -256,16 +349,36 @@ if (isset($info)) {
           </td>
         </tr>
         <?php endforeach; ?>
+        <tr>
+            <td></td>
+            <td class="points-final" colspan="4">загальна сума балів</td>
+            <td class="points-final-val"><?php print render($wrapper->field_sc_eval_f->value()); ?></td>
+        </tr>
       </tbody>
       </table>
             
 
 
-    <div>Особистий підпис </div>
-
-    <div>Підпис завідувача кафедри</div>
-
-    <div>Підпис директора ННІ (декана факультету) </div>
+      <div class="sign">Особистий підпис <span class="sign-underline">
+              &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+              &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+              &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+              &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+          </span></div>
+    
+    <div class="sign">Підпис завідувача кафедри <span class="sign-underline">
+              &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+              &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+              &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+              &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+          </span></div>
+    
+    <div class="sign ">Підпис директора ННІ (декана факультету) <span class="sign-underline">
+              &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+              &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+              &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+              &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+          </span></div>
 
     <div><strong>УВАГА!</strong> У додатку 1 подаються 2 списки публікацій – окремо за I і II півріччя навчального року. В обох списках наводяться дані про рейтингову оцінку кожної публікації та сумарний бал. 
               У додатку 2 подаються паспорти опублікованих книг, що містять розрахунок рейтингової оцінки відповідної книги. </div>
@@ -274,3 +387,4 @@ if (isset($info)) {
 
 </div>
 
+</div>
