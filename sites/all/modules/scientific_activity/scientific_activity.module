@@ -2,15 +2,22 @@
 
 /**
  * Implements hook_theme().
+ * 
+ * Вызывается при назначении шаблона отображения для материала
+ * в этой функции для типа материала scientific_activity 
+ * (этот индентификатор задается при создании типа материала 
+ * в разделе "Структура" - "Типи матеріалів"). Здесь меняется 
+ * стандартный шаблон отображения материала на тот, который
+ * соответствует нашему pdf документу.
  */
 function scientific_activity_theme($existing, $type, $theme, $path) {
-  $theme = array();
+  $theme = array(); //обнудение стандартного шаблона отображения
 
-  $theme['node__scientific_activity_evaluation'] = array(
+  $theme['node__scientific_activity_evaluation'] = array( //задание параметров шаблона для типа scientific_activity_evaluation
     'render element' => 'content',
     'base hook' => 'node',
-    'template' => 'node--scientific_activity_evaluation',
-    'path' => drupal_get_path('module', 'scientific_activity') . '/templates',
+    'template' => 'node--scientific_activity_evaluation', // имя шаблона, в котором разметка будет переписана
+    'path' => drupal_get_path('module', 'scientific_activity') . '/templates', //папка, где хранится этот шаблон
    );
    
   return $theme;
@@ -19,68 +26,98 @@ function scientific_activity_theme($existing, $type, $theme, $path) {
 /**
  * Implements hook_form_FORM_ID_alter().
  *
- * Defines main form for scientific activity. 
+ * Defines main form for scientific activity.
+ * 
+ * Функция переписывает стандартную форму добавления материала.
  */
 function scientific_activity_form_scientific_activity_evaluation_node_form_alter(&$form, &$form_state, $form_id) {
-  $fields = field_info_instances('node', 'scientific_activity_evaluation');
-  foreach ($fields as $fid => $fval) {
-    $form[$fid][LANGUAGE_NONE][0][$fid . '_points']['#access'] = FALSE;
-    $form[$fid][LANGUAGE_NONE][0][$fid . '_points_f']['#access'] = FALSE;
-    $form[$fid][LANGUAGE_NONE][0][$fid . '_hint']['#access'] = FALSE;
-    $variants = $fid . '_variants';
-    $points = $fid . '_points';
+  $fields = field_info_instances('node', 'scientific_activity_evaluation'); //получаем поля материала (те, которые сделаны как field collection)
+  foreach ($fields as $fid => $fval) { // проходимся по ним в цикле
+    $form[$fid][LANGUAGE_NONE][0][$fid . '_points']['#access'] = FALSE; //прячем поле "Бали", чтобы пользователь не смог настваить себе столько баллов, сколько сам захочет
+    if (isset($form[$fid][LANGUAGE_NONE][0][$fid . '_points1'])) {
+      $form[$fid][LANGUAGE_NONE][0][$fid . '_points1']['#access'] = FALSE;
+    }
+    if (isset($form[$fid][LANGUAGE_NONE][0][$fid . '_points2'])) {
+      $form[$fid][LANGUAGE_NONE][0][$fid . '_points2']['#access'] = FALSE;
+    }
     
-    if (method_exists($form_state['field'][$fid][LANGUAGE_NONE]['entity'][0], $variants)) {
-      $current_variant = $form_state['field'][$fid][LANGUAGE_NONE]['entity'][0]->$variants;
-      $form_state['field'][$fid][LANGUAGE_NONE]['entity'][0]->$points = $current_variant;
+    $form[$fid][LANGUAGE_NONE][0][$fid . '_points_f']['#access'] = FALSE; //прячем поле "Кінцевий бал" для каждого поля по той же причине
+    $form[$fid][LANGUAGE_NONE][0][$fid . '_hint']['#access'] = FALSE; //прячем поле подсказки, оно не используется в форме и нужно только для отображения в pdf
+    $form[$fid][LANGUAGE_NONE][0]['field_manage_sc_work_title']['#access'] = FALSE; //в этом поле есть данные, которые должны быть в пдф, но в форме им делать нечего. тоже прячем
+    $form['field_sc_eval_f'][LANGUAGE_NONE][0]['#access'] = FALSE;
+    
+    $variants = $fid . '_variants'; //поля, имеющие окончание _variants означают возможные варианты выбора поля. берем это значение
+    $points = $fid . '_points'; //аналогично с балами
+    
+    if (isset($form_state['field'][$fid][LANGUAGE_NONE]['entity'])) { //проверка на существование поля field collection
+      if (method_exists($form_state['field'][$fid][LANGUAGE_NONE]['entity'][0], $variants)) { // проверка на существование внутреннего поля в этом поле
+        $current_variant = $form_state['field'][$fid][LANGUAGE_NONE]['entity'][0]->$variants; // берем значение, которое пользователь выбрал в поле "Варианты"
+        $form_state['field'][$fid][LANGUAGE_NONE]['entity'][0]->$points = $current_variant; // и выбираем значение с тем же идентификатором в поле "Баллы"
+      }
     }
   }
 }
 
+/**
+ * 
+ * @staticvar boolean $hook_running
+ * @param type $node
+ * @return type
+ * 
+ * Функция срабатывает при сохранении формы. 
+ */
 function scientific_activity_node_presave($node) {
-  static $hook_running=false; if($hook_running) { return; } else { $hook_running=true; }
+  static $hook_running=false; if($hook_running) { return; } else { $hook_running=true; } // просто уловка которая фиксит баг с повторным сохренением сущности
 
-  if($node->type == 'scientific_activity_evaluation') {
-    $fields = field_info_instances('node', 'scientific_activity_evaluation');
-    $node_wrapper = entity_metadata_wrapper('node', $node);
-    $field_collections = array();
-    $sc_eval_final_points = 0;
-    foreach ($fields as $fid => $fval) {
-      if ($fid == 'field_sc_eval_f') {
+  if($node->type == 'scientific_activity_evaluation') { // если сохраняется наш тип материала
+    $fields = field_info_instances('node', 'scientific_activity_evaluation'); // берем его поля
+    $node_wrapper = entity_metadata_wrapper('node', $node); // инициализируем объектную оболочку вокруг сущности
+    $field_collections = array(); // инициализация переменной, куда будут писаться все измененные дальнейшим скриптом поля
+    $sc_eval_final_points = 0; // инициализация переменной - конечный балл
+    foreach ($fields as $fid => $fval) { // перебор полей сущности
+      if ($fid == 'field_sc_eval_f') { // если попадается поле "конечный бал", игнорим его т.к. оно реализовано не так, как остальные поля
           continue;
       }
-      $variants = $fid . '_variants';
-      $points = $fid . '_points';
-      if ($node_wrapper->$fid->__isset($points)) {
-        $multi = $node_wrapper->$fid->$points->optionsList();
-        if (!empty($multi)) {
-          $final_points_val = 0;
-          foreach ($multi as $mkey => $mval) {
-            $multifield = $fid . '_multi_' . $mkey;
-            $final_points = $fid . '_points_f';
-            if ($node_wrapper->$fid->__isset($multifield)) {
-              $final_points_val += $mval*intval($node_wrapper->$fid->$multifield->value());
+      $variants = $fid . '_variants'; // берем поле варианты
+      $points = $fid . '_points'; // берем поле баллы
+      if ($node_wrapper->$fid->__isset($points)) { //если в поле есть подполе "баллы"
+        //--------- для полей с текстовыми подполями ------------
+        $multi = $node_wrapper->$fid->$points->optionsList(); // берем его список елементов
+        if (!empty($multi)) { // если список не пустой
+          $final_points_val = 0; // инициализируем переменную для хранения значения из этого поля
+          foreach ($multi as $mkey => $mval) { // перебираем елементы поля "баллы"
+            $multifield = $fid . '_multi_' . $mkey; //генерируем название текстового поля
+            $final_points = $fid . '_points_f'; //генерируем название подполя для сохранения рассчитанного результата поля
+            if ($node_wrapper->$fid->__isset($multifield)) { //если текстовое подполе существует
+              $final_points_val += $mval*intval($node_wrapper->$fid->$multifield->value()); //в переменную пишем его значение умноженное на коефициент, указанный в подполе "баллы"
             }
           }
-          if ($node_wrapper->$fid->__isset($final_points)) {
-            $node_wrapper->$fid->$final_points->set($final_points_val);
-            $sc_eval_final_points += $final_points_val;
+          //$sc_eval_final_points += $final_points_val; // к общему баллу за всю форму прибавляем рассчитанный результат этого поля
+          if ($node_wrapper->$fid->__isset($final_points)) { //если есть подполе для хранения общего результата поля
+            $node_wrapper->$fid->$final_points->set($final_points_val); // сохраняем его
+            $sc_eval_final_points += $final_points_val; //с какого-то хера еще раз добавляем это значение в общий балл за документ. по ходу это баг
           }
         }
       }
       
-      if ($node_wrapper->$fid->__isset($variants)) {
-        if ($node_wrapper->__isset($fid)) {
-          if (isset($field_collections[$fid]) && isset($field_collections[$fid]['values'])) {
-            $field_collections[$fid]['values'][] = $node_wrapper->$fid->$variants->value();
-            $final_points_val += $node_wrapper->$fid->$variants->value();
-          }
-        }
-      }
       
-      if ($node_wrapper->$fid->__isset($points . '1')) {
+      
+      if ($node_wrapper->$fid->__isset($variants) && $node_wrapper->$fid->__isset($points)) { // если есть подполе "варианты"
+          //if (isset($field_collections[$fid])) { // если в списке обработаных полей есть текущее поле
+            $variant = $node_wrapper->$fid->$variants->value();
+            $node_wrapper->$fid->$points->set($variant);
+            $options = $node_wrapper->$fid->$points->optionsList();
+          $field_collections[$fid]['values'][] = empty($node_wrapper->$fid->$variants->value()) ? -1 : $node_wrapper->$fid->$points->value(); //добавляем туда значение с поля вариантов, чтобы поле могло соханиться
+            //$final_points_val += $node_wrapper->$fid->$points->value(); // в общий балл документа добавляем почему-то значение варианта. по ходу тоже баг
+          
+            $sc_eval_final_points += $options[$variant]; //и эту хрень сохраняем в общий балл по документу
+          //}
+      }
+      //$sc_eval_final_points += $final_points_val; //и эту хрень сохраняем в общий балл по документу
+      
+      if ($node_wrapper->$fid->__isset($points . '1')) { // еще один вариант поля - когд существует два поля с вариантами и два поля с баллами
         if ($node_wrapper->$fid->__isset($variants . '1')) {
-          $variants1 = $variants . '1';
+          $variants1 = $variants . '1'; // все очень просто. значения сохраняются в соответствующие поля
           $variants2 = $variants . '2';
           $field_collections[$fid]['values'][] = $node_wrapper->$fid->$variants1->value();
           $field_collections[$fid]['keys'][] = $fid . '_points1';
@@ -92,20 +129,29 @@ function scientific_activity_node_presave($node) {
       }
       
     }
-    $node_wrapper->field_sc_eval_f->set($sc_eval_final_points);
+    $node_wrapper->field_sc_eval_f->set($sc_eval_final_points); //пишем рассчитанный общий балл по документу
     
-    updateFieldCollection(
+    updateFieldCollection( // сохраняем значения field collection (для таких полей отдельное сохранение)
       $node,
       $field_collections
     );
   }
 
-  $hook_running = false;
+  $hook_running = false; // вспосогательнаяя переменная для фикса бага, указанного в первой строке функции
 }
 
-
+/**
+ * 
+ * @param type $node
+ * @param type $collections
+ * @param type $index
+ * 
+ * Сохранение поля типа field collection. Код найден в сети, написан
+ * сторонним разработчиком
+ */
 function updateFieldCollection($node, $collections, $index = 0) {
-  if ($node && !empty($collections)) {
+    // -------- терра инкогнита -------------
+  if ($node && !empty($collections)) { 
     $node_wrapper = entity_metadata_wrapper('node', $node);
     foreach ($collections as $collection_key => $collection) {
       foreach ($collection['keys'] as $fkey_id => $fkey_val) {
