@@ -107,7 +107,8 @@ function scientific_activity_node_presave($node) {
             $variant = $node_wrapper->$fid->$variants->value();
             $node_wrapper->$fid->$points->set($variant);
             $options = $node_wrapper->$fid->$points->optionsList();
-          $field_collections[$fid]['values'][] = empty($node_wrapper->$fid->$variants->value()) ? -1 : $node_wrapper->$fid->$points->value(); //добавляем туда значение с поля вариантов, чтобы поле могло соханиться
+            $value = $node_wrapper->$fid->$variants->value();
+          $field_collections[$fid]['values'][] = empty($value) ? -1 : $node_wrapper->$fid->$points->value(); //добавляем туда значение с поля вариантов, чтобы поле могло соханиться
             //$final_points_val += $node_wrapper->$fid->$points->value(); // в общий балл документа добавляем почему-то значение варианта. по ходу тоже баг
           
             $sc_eval_final_points += $options[$variant]; //и эту хрень сохраняем в общий балл по документу
