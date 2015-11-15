@@ -69,15 +69,16 @@ function scientific_activity_form_scientific_activity_evaluation_node_form_alter
 function scientific_activity_node_presave($node) {
   static $hook_running=false; if($hook_running) { return; } else { $hook_running=true; } // просто уловка которая фиксит баг с повторным сохренением сущности
 
-  if($node->type == 'scientific_activity_evaluation') { // если сохраняется наш тип материала
+  if ($node->type == 'scientific_activity_evaluation') { // если сохраняется наш тип материала
     $fields = field_info_instances('node', 'scientific_activity_evaluation'); // берем его поля
     $node_wrapper = entity_metadata_wrapper('node', $node); // инициализируем объектную оболочку вокруг сущности
     $field_collections = array(); // инициализация переменной, куда будут писаться все измененные дальнейшим скриптом поля
     $sc_eval_final_points = 0; // инициализация переменной - конечный балл
     foreach ($fields as $fid => $fval) { // перебор полей сущности
-      if ($fid == 'field_sc_eval_f') { // если попадается поле "конечный бал", игнорим его т.к. оно реализовано не так, как остальные поля
+      if ($fval['widget']['type'] != 'field_collection_embed') {
           continue;
       }
+      
       $variants = $fid . '_variants'; // берем поле варианты
       $points = $fid . '_points'; // берем поле баллы
       if ($node_wrapper->$fid->__isset($points)) { //если в поле есть подполе "баллы"
@@ -131,7 +132,6 @@ function scientific_activity_node_presave($node) {
       
     }
     $node_wrapper->field_sc_eval_f->set($sc_eval_final_points); //пишем рассчитанный общий балл по документу
-    
     updateFieldCollection( // сохраняем значения field collection (для таких полей отдельное сохранение)
       $node,
       $field_collections

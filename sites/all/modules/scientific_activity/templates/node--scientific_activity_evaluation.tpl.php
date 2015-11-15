@@ -261,7 +261,7 @@
         <?php $i = 0; ?>
         <?php foreach ($fields as $fid => $fval): ?>
         <?php 
-            if ($fid == 'field_sc_eval_f') {
+            if ($fval['widget']['type'] != 'field_collection_embed') {
                 continue;
             }
         ?>
