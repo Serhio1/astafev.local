@@ -414,7 +414,7 @@ class StringDatabaseStorage implements StringStorageInterface {
   protected function dbStringInsert($string) {
     if ($string->isSource()) {
       $string->setValues(array('context' => '', 'version' => 'none'), FALSE);
-      $fields = $string->getValues(array('source', 'context', 'version', 'textgroup'));
+      $fields = $string->getValues(array('source', 'context', 'version'));
     }
     elseif ($string->isTranslation()) {
       $string->setValues(array('customized' => 0), FALSE);

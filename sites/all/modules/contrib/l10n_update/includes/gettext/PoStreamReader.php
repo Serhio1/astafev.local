@@ -524,12 +524,9 @@ class PoStreamReader implements PoStreamInterface, PoReaderInterface {
     $plural = FALSE;
 
     $comments = '';
-    $textgroup = 'default';
     if (isset($value['#'])) {
       $comments = $this->shortenComments($value['#']);
-      $textgroup = $this->fetchGroupFromComment($comments);
     }
-
 
     if (is_array($value['msgstr'])) {
       // Sort plural variants by their form index.
@@ -544,7 +541,6 @@ class PoStreamReader implements PoStreamInterface, PoReaderInterface {
     $item->setPlural($plural);
     $item->setComment($comments);
     $item->setLangcode($this->_langcode);
-    $item->setTextgroup($textgroup);
 
     $this->_last_item = $item;
 
@@ -602,27 +598,6 @@ class PoStreamReader implements PoStreamInterface, PoReaderInterface {
       }
     }
     return trim(substr($comm, 0, -2));
-  }
-
-  /**
-   * Given a translation source's comment-string,
-   * attempts to determine the textgroup
-   *
-   * @param $comment
-   * @return null
-   */
-  private function fetchGroupFromComment($comment) {
-    // Only if i18n_string is installed, check for and set textgroups
-    if (module_exists('i18n_string') && strpos($comment, ':') !== FALSE) {
-      // Fetch available textgroups
-      $groups = array_keys(i18n_string_group_info());
-      // Parse textgroup from comment (assume default drupal exports)
-      $comment_array = explode(':', $comment);
-      if (!empty($comment_array) && in_array($comment_array[0], $groups)) {
-        return $comment_array[0];
-      }
-    }
-    return 'default';
   }
 
 }

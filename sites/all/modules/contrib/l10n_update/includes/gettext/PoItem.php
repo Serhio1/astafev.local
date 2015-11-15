@@ -47,13 +47,6 @@ class PoItem {
   private $_comment;
 
   /**
-   * The text group of this translation.
-   *
-   * @var string
-   */
-  private $_textgroup;
-
-  /**
    * The translation string or array of strings if it has plurals.
    *
    * @var string or array
@@ -77,20 +70,6 @@ class PoItem {
    */
   function setLangcode($langcode) {
     $this->_langcode = $langcode;
-  }
-
-  /**
-   * Get the translation group of this translation
-   */
-  function getTextgroup() {
-    return empty($this->_textgroup) ? 'default' : $this->_textgroup;
-  }
-
-  /**
-   * Set the translation group of this translation
-   */
-  function setTextgroup($textgroup) {
-    $this->_textgroup = $textgroup;
   }
 
   /**
