@@ -191,7 +191,19 @@
 
 
 <?php $user = user_load($user->uid); ?>
-<?php $wrapper = entity_metadata_wrapper('node', $node); ?>
+<?php 
+$wrapper = entity_metadata_wrapper('node', $node); 
+$query = new EntityFieldQuery;
+    $result = $query
+      ->entityCondition('entity_type', 'node')
+      ->propertyCondition('status', 1)
+      ->propertyCondition('type', 'scientific_anket')
+      ->propertyCondition('uid', $user->uid)
+      ->execute();
+    $ankets = array_keys($result['node']);
+    $anket = $ankets[0];
+    $anket_wrapper = entity_metadata_wrapper('node', $anket);
+?>
 
 <div class="dodatok">Додаток А</div>
 
@@ -203,12 +215,18 @@
 
     <div class="cathedra">
       <?php
-        if ($wrapper->field_academic_status->__isset('field_academic_status_variants')) {
+        if ($anket_wrapper->field_academic_status->__isset('field_academic_status_variants')) {
+          print '<span class="status"><span class="upfirst">' . $anket_wrapper->field_academic_status
+                  ->field_academic_status_variants
+                  ->optionsList()[$anket_wrapper->field_academic_status
+                  ->field_academic_status_variants->value()] . '</span>';
+        }
+        /*if ($wrapper->field_academic_status->__isset('field_academic_status_variants')) {
           print '<span class="status"><span class="upfirst">' . $wrapper->field_academic_status
                   ->field_academic_status_variants
                   ->optionsList()[$wrapper->field_academic_status
                   ->field_academic_status_variants->value()] . '</span>';
-        }
+        }*/
       ?>
       кафедри</span>
       <?php

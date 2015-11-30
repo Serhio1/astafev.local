@@ -245,7 +245,7 @@
         
       <div id="copyright">
         <p class="copyright">
-          <?php print t('Copyright'); ?> &copy; <?php echo date("Y"); ?>, <?php print $site_name; ?>
+          <?php print t('Copyright'); ?> &copy; <?php echo date("Y"); ?>, <?php print t('АКІТ, ЧНУ'); ?>
         </p> 
 
         <!-- Social Links -->
@@ -263,8 +263,7 @@
           </span>
         <?php endif; ?>
 
-        <p class="credits">
-          <?php print t('Designed by'); ?>  <a href="http://www.zymphonies.com">Zymphonies</a></p>
+        
         <div class="clear"></div>
       </div>
     </div>
